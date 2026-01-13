@@ -1,0 +1,84 @@
+package handlers
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/LiFeAiR/users-crud-ai/internal/models"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+func TestUpdateUserHandler(t *testing.T) {
+	// Create a test request with valid JSON
+	jsonData := `{"id":1,"name":"John Smith","email":"johnsmith@example.com","password":"newpassword123"}`
+	req := httptest.NewRequest("PUT", "/api/user", bytes.NewBufferString(jsonData))
+	req.Header.Set("Content-Type", "application/json")
+
+	// Создаем мок репозиторий
+	mockRepo := new(MockUserRepository)
+
+	// Определяем ожидаемое поведение мока
+	mockRepo.On("UpdateUser", mock.Anything).Return(nil)
+
+	// Создаем базовый обработчик с моком
+	baseHandler := &BaseHandler{
+		userRepo: mockRepo,
+	}
+
+	// Create a response recorder
+	rr := httptest.NewRecorder()
+
+	// Call the handler with nil server (for testing purposes)
+	// In real application, server would be passed
+	baseHandler.UpdateUser(rr, req)
+
+	// Check the status code
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	// Check the response body
+	var responseUser models.User
+	err := json.Unmarshal(rr.Body.Bytes(), &responseUser)
+	assert.NoError(t, err)
+	assert.Equal(t, "John Smith", responseUser.Name)
+	assert.Equal(t, "johnsmith@example.com", responseUser.Email)
+	assert.Equal(t, 1, responseUser.ID) // Dummy ID
+}
+
+func TestUpdateUserHandler_InvalidJSON(t *testing.T) {
+	// Create a test request with invalid JSON
+	invalidJSON := `{"name":"John Doe","email":}`
+	req := httptest.NewRequest("PUT", "/api/user", bytes.NewBufferString(invalidJSON))
+	req.Header.Set("Content-Type", "application/json")
+
+	// Создаем мок репозиторий
+	mockRepo := new(MockUserRepository)
+
+	// Подготавливаем тестового пользователя
+	testUser := &models.User{
+		ID:    1,
+		Name:  "John Doe",
+		Email: "john@example.com",
+	}
+
+	// Определяем ожидаемое поведение мока
+	mockRepo.On("GetUserByID", 1).Return(testUser, nil)
+
+	// Создаем базовый обработчик с моком
+	baseHandler := &BaseHandler{
+		userRepo: mockRepo,
+	}
+
+	// Create a response recorder
+	rr := httptest.NewRecorder()
+
+	// Call the handler with nil server (for testing purposes)
+	// In real application, server would be passed
+	baseHandler.UpdateUser(rr, req)
+
+	// Check the status code
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
