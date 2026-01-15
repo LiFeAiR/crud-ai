@@ -23,7 +23,7 @@ This is a REST API server implementation with database connection capabilities.
 │   │   ├── db.go            # Database connection class
 │   │   ├── interface.go     # Repository interface
 │   │   ├── organization_repository.go  # Organization repository implementation
-│   │   └── repository.go    # User repository implementation
+│   │   └── user_repository.go    # User repository implementation
 │   └── server/              # HTTP server implementation
 └── go.mod                   # Go modules file
 ```
@@ -42,7 +42,7 @@ The database connection class is located in `internal/repository/db.go`. It prov
 // Create new database connection
 db, err := repository.NewDB("host=localhost port=5432 user=postgres password=postgres dbname=testdb sslmode=disable")
 if err != nil {
-    log.Fatal("Failed to connect to database:", err)
+log.Fatal("Failed to connect to database:", err)
 }
 defer db.Close()
 
@@ -73,7 +73,6 @@ HTTP handlers in `internal/handlers/` now use the repository pattern through a b
 
 ## API Endpoints
 
-
 The server now supports the following endpoints:
 
 `GET /` - Root endpoint
@@ -93,6 +92,7 @@ The server now supports the following endpoints:
 - `POST /api/organization` - Create a new organization
 - `PUT /api/organization` - Update an existing organization
 - `DELETE /api/organization` - Delete an organization
+
 ## Getting Started
 
 1. Make sure you have Go installed
