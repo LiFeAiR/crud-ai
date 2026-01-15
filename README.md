@@ -63,22 +63,29 @@ connection := db.GetConnection()
 
 // The server manages the database connection lifecycle
 // and passes it to handlers through the base handler
+
+Note: In production environments, database connection management should be handled more carefully
+to prevent premature closure of connections. Currently, the connection is closed after
+the Start method completes, which is not ideal for long-running servers.
 ```
 
 ## Repository Pattern Implementation
 
-The project implements repository pattern in `internal/repository/repository.go`:
+The project implements repository pattern in `internal/repository/`:
 
 - `UserRepository` interface defines methods for user operations (defined in `interface.go`)
-- `userRepository` struct implements the interface
-- Provides methods for CRUD operations on users
-- Includes database initialization
+- `userRepository` struct implements the interface (defined in `user_repository.go`)
+- `OrganizationRepository` interface defines methods for organization operations (defined in `interface.go`)
+- `organizationRepository` struct implements the interface (defined in `organization_repository.go`)
+- Both repositories use the same database connection from `db.go`
+- Provides methods for CRUD operations on users and organizations
+- Includes database initialization for both tables
 
 ## Handler Integration
 
 HTTP handlers in `internal/handlers/` now use the repository pattern through a base handler:
 
-- Base handler handles all user operations (create, update, get, delete)
+- Base handler receives repository instances for users and organizations
 - Handlers receive the server instance to access database connection
 - The actual repository interaction is delegated to the base handler
 - All handlers are registered via the server in `internal/server/server.go`
