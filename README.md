@@ -9,6 +9,9 @@ This is a REST API server implementation with database connection capabilities.
 ├── api/
 │   └── openapi/
 │       └── api.yaml         # OpenAPI specification
+├── build/                   # Build and deployment configurations
+│   ├── .env                 # Environment variables for Docker Compose
+│   └── docker-compose.yml   # Docker Compose configuration for PostgreSQL database
 ├── cmd/
 │   ├── app/
 │   │   └── main.go          # Main entry point
@@ -25,10 +28,7 @@ This is a REST API server implementation with database connection capabilities.
 │   │   ├── organization_repository.go  # Organization repository implementation
 │   │   └── user_repository.go    # User repository implementation
 │   └── server/              # HTTP server implementation
-├── go.mod                   # Go modules file
-├── build/                   # Build and deployment configurations
-│   ├── .env                 # Environment variables for Docker Compose
-│   └── docker-compose.yml   # Docker Compose configuration for PostgreSQL database
+└── go.mod                   # Go modules file
 ```
 
 ## Build and Deployment
