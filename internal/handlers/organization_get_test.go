@@ -16,8 +16,8 @@ type MockOrganizationRepository struct {
 	mock.Mock
 }
 
-func (m *MockOrganizationRepository) CreateOrganization(_ context.Context, org *models.Organization) (*models.Organization, error) {
-	args := m.Called(org)
+func (m *MockOrganizationRepository) CreateOrganization(ctx context.Context, org *models.Organization) (*models.Organization, error) {
+	args := m.Called(ctx, org)
 
 	if o, ok := args.Get(0).(*models.Organization); ok {
 		return o, args.Error(1)
