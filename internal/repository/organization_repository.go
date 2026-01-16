@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/LiFeAiR/users-crud-ai/internal/models"
+	"github.com/LiFeAiR/crud-ai/internal/models"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -20,9 +20,9 @@ func NewOrganizationRepository(db *DB) OrganizationRepository {
 }
 
 // CreateOrganization создает новую организацию
-func (r *organizationRepository) CreateOrganization(org *models.Organization) (*models.Organization, error) {
+func (r *organizationRepository) CreateOrganization(ctx context.Context, org *models.Organization) (*models.Organization, error) {
 	query := `INSERT INTO organizations (name) VALUES ($1) RETURNING id`
-	err := r.db.GetConnection().QueryRow(context.Background(), query, org.Name).Scan(&org.ID)
+	err := r.db.GetConnection().QueryRow(ctx, query, org.Name).Scan(&org.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create organization: %w", err)
 	}
@@ -30,9 +30,9 @@ func (r *organizationRepository) CreateOrganization(org *models.Organization) (*
 }
 
 // GetOrganizationByID получает организацию по ID
-func (r *organizationRepository) GetOrganizationByID(id int) (*models.Organization, error) {
+func (r *organizationRepository) GetOrganizationByID(ctx context.Context, id int) (*models.Organization, error) {
 	query := `SELECT id, name FROM organizations WHERE id = $1`
-	row := r.db.GetConnection().QueryRow(context.Background(), query, id)
+	row := r.db.GetConnection().QueryRow(ctx, query, id)
 
 	org := &models.Organization{}
 	err := row.Scan(&org.ID, &org.Name)
@@ -47,9 +47,9 @@ func (r *organizationRepository) GetOrganizationByID(id int) (*models.Organizati
 }
 
 // UpdateOrganization обновляет информацию об организации
-func (r *organizationRepository) UpdateOrganization(org *models.Organization) error {
+func (r *organizationRepository) UpdateOrganization(ctx context.Context, org *models.Organization) error {
 	query := `UPDATE organizations SET name = $1 WHERE id = $2`
-	_, err := r.db.GetConnection().Exec(context.Background(), query, org.Name, org.ID)
+	_, err := r.db.GetConnection().Exec(ctx, query, org.Name, org.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update organization: %w", err)
 	}
@@ -57,9 +57,9 @@ func (r *organizationRepository) UpdateOrganization(org *models.Organization) er
 }
 
 // DeleteOrganization удаляет организацию
-func (r *organizationRepository) DeleteOrganization(id int) error {
+func (r *organizationRepository) DeleteOrganization(ctx context.Context, id int) error {
 	query := `DELETE FROM organizations WHERE id = $1`
-	_, err := r.db.GetConnection().Exec(context.Background(), query, id)
+	_, err := r.db.GetConnection().Exec(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete organization: %w", err)
 	}
@@ -67,9 +67,9 @@ func (r *organizationRepository) DeleteOrganization(id int) error {
 }
 
 // GetOrganizations получает список организаций с ограничением и смещением
-func (r *organizationRepository) GetOrganizations(limit, offset int) ([]*models.Organization, error) {
+func (r *organizationRepository) GetOrganizations(ctx context.Context, limit, offset int) ([]*models.Organization, error) {
 	query := `SELECT id, name FROM organizations ORDER BY id LIMIT $1 OFFSET $2`
-	rows, err := r.db.GetConnection().Query(context.Background(), query, limit, offset)
+	rows, err := r.db.GetConnection().Query(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get organizations: %w", err)
 	}

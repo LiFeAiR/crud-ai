@@ -1,35 +1,36 @@
 package handlers
 
 import (
-	"encoding/json"
-	"log"
-	"net/http"
+	"context"
 
-	"github.com/LiFeAiR/users-crud-ai/internal/models"
+	"github.com/LiFeAiR/crud-ai/internal/models"
+	api_pb "github.com/LiFeAiR/crud-ai/pkg/server/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // UpdateOrganization обновляет информацию об организации
-func (bh *BaseHandler) UpdateOrganization(w http.ResponseWriter, r *http.Request) {
-	var org models.Organization
+func (bh *BaseHandler) UpdateOrganization(ctx context.Context, in *api_pb.OrganizationUpdateRequest) (out *api_pb.Organization, err error) {
+	// Проверяем входные данные
+	if in == nil || in.Id == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Invalid argument")
+	}
 
-	// Parse JSON request body
-	if err := json.NewDecoder(r.Body).Decode(&org); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+	// Преобразуем запрос в модель
+	org := models.Organization{
+		ID:   int(in.Id),
+		Name: in.Name,
 	}
 
 	// Используем репозиторий для обновления организации
-	err := bh.orgRepo.UpdateOrganization(&org)
+	err = bh.orgRepo.UpdateOrganization(ctx, &org)
 	if err != nil {
-		http.Error(w, "Failed to update organization", http.StatusInternalServerError)
-		return
+		return nil, status.Error(codes.Internal, "Failed to update organization")
 	}
 
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
-
-	// Send response
-	if err := json.NewEncoder(w).Encode(org); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
+	// Возвращаем ответ
+	return &api_pb.Organization{
+		Id:   int32(org.ID),
+		Name: org.Name,
+	}, nil
 }

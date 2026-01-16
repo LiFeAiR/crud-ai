@@ -1,14 +1,24 @@
 package main
 
 import (
+	"context"
+	"log"
 	"os"
 
-	"github.com/LiFeAiR/users-crud-ai/internal/server"
+	"github.com/LiFeAiR/crud-ai/internal/server"
 )
 
 func main() {
-	// Create and start the server
-	s := server.NewServer("8080")
+	log.Fatalf(
+		"Failed to serve and listen: %s",
+		run().Error(),
+	)
+}
+
+func run() error {
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	// Получаем строку подключения к БД из переменной окружения или используем значение по умолчанию
 	dbURL := os.Getenv("DATABASE_URL")
@@ -16,5 +26,7 @@ func main() {
 		dbURL = "host=localhost port=5432 user=postgres password=password dbname=httpserverdb sslmode=disable"
 	}
 
-	s.Start(dbURL)
+	// Create and start the server
+	s := server.NewServer("8080", "2662", dbURL)
+	return s.Start(ctx)
 }

@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"encoding/json"
-	"log"
-	"net/http"
-	"strconv"
+	"context"
 
-	"github.com/LiFeAiR/users-crud-ai/internal/models"
+	"github.com/LiFeAiR/crud-ai/internal/models"
+	api_pb "github.com/LiFeAiR/crud-ai/pkg/server/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type OrganizationsResponse struct {
@@ -14,36 +14,40 @@ type OrganizationsResponse struct {
 }
 
 // GetOrganizations получает список организаций с пагинацией
-func (bh *BaseHandler) GetOrganizations(w http.ResponseWriter, r *http.Request) {
-	// Получаем параметры запроса
+func (bh *BaseHandler) GetOrganizations(
+	ctx context.Context,
+	in *api_pb.ListRequest,
+) (out *api_pb.OrganizationsResponse, err error) {
+	// Устанавливаем значения по умолчанию
 	limit := 10
 	offset := 0
 
-	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil {
-			limit = l
-		}
+	// Парсим limit
+	if in.Limit > 0 && in.Limit < 100 {
+		limit = int(in.GetLimit())
 	}
 
-	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
-		if o, err := strconv.Atoi(offsetStr); err == nil {
-			offset = o
-		}
+	// Парсим offset
+	if in.Offset > 0 {
+		offset = int(in.GetOffset())
 	}
 
 	// Используем репозиторий для получения организаций
-	organizations, err := bh.orgRepo.GetOrganizations(limit, offset)
+	organizations, err := bh.orgRepo.GetOrganizations(ctx, limit, offset)
 	if err != nil {
-		http.Error(w, "Failed to get organizations", http.StatusInternalServerError)
-		return
+		return nil, status.Error(codes.Internal, "Failed to get organizations")
 	}
 
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	// Send response
-	if err := json.NewEncoder(w).Encode(&OrganizationsResponse{Data: organizations}); err != nil {
-		log.Printf("Error encoding response: %v", err)
+	// Отправляем ответ клиенту
+	data := make([]*api_pb.Organization, len(organizations))
+	for i, u := range organizations {
+		data[i] = &api_pb.Organization{
+			Id:   int32(u.ID),
+			Name: u.Name,
+		}
 	}
+
+	return &api_pb.OrganizationsResponse{
+		Data: data,
+	}, nil
 }

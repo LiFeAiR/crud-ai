@@ -1,35 +1,41 @@
 package handlers
 
 import (
-	"encoding/json"
-	"log"
-	"net/http"
+	"context"
 
-	"github.com/LiFeAiR/users-crud-ai/internal/models"
+	"github.com/LiFeAiR/crud-ai/internal/models"
+	"github.com/LiFeAiR/crud-ai/internal/utils"
+	api_pb "github.com/LiFeAiR/crud-ai/pkg/server/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // UpdateUser общий метод для обновления пользователя
-func (bh *BaseHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	var user models.User
+func (bh *BaseHandler) UpdateUser(ctx context.Context, in *api_pb.UserUpdateRequest) (out *api_pb.User, err error) {
+	// Проверяем входные данные
+	if in == nil || in.Id == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Invalid argument")
+	}
 
-	// Parse JSON request body
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+	// Преобразуем запрос в модель
+	user := models.User{
+		ID:           int(in.Id),
+		Name:         in.Name,
+		Email:        in.Email,
+		Password:     in.Password,
+		Organization: utils.Ptr(in.Organization),
 	}
 
 	// Используем репозиторий для обновления пользователя
-	if err := bh.userRepo.UpdateUser(&user); err != nil {
-		http.Error(w, "Failed to update user", http.StatusInternalServerError)
-		return
+	if err := bh.userRepo.UpdateUser(ctx, &user); err != nil {
+		return nil, status.Error(codes.Internal, "Failed to update user")
 	}
 
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	// Send response
-	if err := json.NewEncoder(w).Encode(user); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
+	// Возвращаем ответ
+	return &api_pb.User{
+		Id:           int32(user.ID),
+		Name:         user.Name,
+		Email:        user.Email,
+		Organization: utils.FromPtr(user.Organization),
+	}, nil
 }

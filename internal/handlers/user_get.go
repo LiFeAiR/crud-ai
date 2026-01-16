@@ -1,46 +1,32 @@
 package handlers
 
 import (
-	"encoding/json"
-	"log"
-	"net/http"
-	"strconv"
+	"context"
+
+	"github.com/LiFeAiR/crud-ai/internal/utils"
+	api_pb "github.com/LiFeAiR/crud-ai/pkg/server/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-// GetUser общий метод для получения пользователя по ID из query параметров
-func (bh *BaseHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	// Получаем userID из query параметров
-	userIDStr := r.URL.Query().Get("id")
-	if userIDStr == "" {
-		http.Error(w, "Missing user ID in query parameters", http.StatusBadRequest)
-		return
-	}
-
-	// Конвертируем строку в целое число
-	userID, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
+// GetUser общий метод для получения пользователя по ID
+func (bh *BaseHandler) GetUser(ctx context.Context, in *api_pb.Id) (out *api_pb.User, err error) {
+	// Проверяем входные данные
+	if in == nil {
+		return nil, status.Error(codes.InvalidArgument, "Invalid argument")
 	}
 
 	// Используем репозиторий для получения пользователя
-	user, err := bh.userRepo.GetUserByID(userID)
+	user, err := bh.userRepo.GetUserByID(ctx, int(in.Id))
 	if err != nil {
-		if err.Error() == "user not found" {
-			http.Error(w, "User not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "Failed to get user", http.StatusInternalServerError)
-			log.Printf("Failed to get user: %v", err)
-		}
-		return
+		return nil, status.Error(codes.NotFound, "User not found")
 	}
 
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	// Send response
-	if err := json.NewEncoder(w).Encode(user); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
+	// Возвращаем ответ
+	return &api_pb.User{
+		Id:           int32(user.ID),
+		Name:         user.Name,
+		Email:        user.Email,
+		Organization: utils.FromPtr(user.Organization),
+	}, nil
 }

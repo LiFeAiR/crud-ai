@@ -1,12 +1,14 @@
 package handlers
 
 import (
-	"encoding/json"
+	"context"
 	"log"
-	"net/http"
-	"strconv"
 
-	"github.com/LiFeAiR/users-crud-ai/internal/models"
+	"github.com/LiFeAiR/crud-ai/internal/models"
+	"github.com/LiFeAiR/crud-ai/internal/utils"
+	api_pb "github.com/LiFeAiR/crud-ai/pkg/server/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type UsersResponse struct {
@@ -14,42 +16,43 @@ type UsersResponse struct {
 }
 
 // GetUsersHandler обработчик для получения списка пользователей
-func (h *BaseHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
-	// Получаем параметры limit и offset из запроса
-	limitStr := r.URL.Query().Get("limit")
-	offsetStr := r.URL.Query().Get("offset")
-
+func (h *BaseHandler) GetUsers(
+	ctx context.Context,
+	in *api_pb.ListRequest,
+) (out *api_pb.UsersResponse, err error) {
 	// Устанавливаем значения по умолчанию
 	limit := 10
 	offset := 0
 
 	// Парсим limit
-	if limitStr != "" {
-		if parsedLimit, err := strconv.Atoi(limitStr); err == nil {
-			limit = parsedLimit
-		}
+	if in.Limit > 0 && in.Limit < 100 {
+		limit = int(in.GetLimit())
 	}
 
 	// Парсим offset
-	if offsetStr != "" {
-		if parsedOffset, err := strconv.Atoi(offsetStr); err == nil {
-			offset = parsedOffset
-		}
+	if in.Offset > 0 {
+		offset = int(in.GetOffset())
 	}
 
 	// Получаем список пользователей из репозитория
-	users, err := h.userRepo.GetUsers(limit, offset)
+	users, err := h.userRepo.GetUsers(ctx, limit, offset)
 	if err != nil {
-		http.Error(w, "Failed to get users", http.StatusInternalServerError)
-		return
+		log.Printf("Failed to get users: %v", err)
+		return nil, status.Error(codes.Internal, "Failed to get users")
 	}
 
 	// Отправляем ответ клиенту
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	// Send response
-	if err := json.NewEncoder(w).Encode(&UsersResponse{Data: users}); err != nil {
-		log.Printf("Error encoding response: %v", err)
+	data := make([]*api_pb.User, len(users))
+	for i, u := range users {
+		data[i] = &api_pb.User{
+			Id:           int32(u.ID),
+			Name:         u.Name,
+			Email:        u.Email,
+			Organization: utils.FromPtr(u.Organization),
+		}
 	}
+
+	return &api_pb.UsersResponse{
+		Data: data,
+	}, nil
 }

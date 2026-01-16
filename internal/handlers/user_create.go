@@ -1,38 +1,40 @@
 package handlers
 
 import (
-	"encoding/json"
-	"log"
-	"net/http"
+	"context"
 
-	"github.com/LiFeAiR/users-crud-ai/internal/models"
+	"github.com/LiFeAiR/crud-ai/internal/models"
+	"github.com/LiFeAiR/crud-ai/internal/utils"
+	api_pb "github.com/LiFeAiR/crud-ai/pkg/server/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // CreateUser общий метод для создания пользователя
-func (bh *BaseHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var user models.User
+func (bh *BaseHandler) CreateUser(ctx context.Context, in *api_pb.UserCreateRequest) (out *api_pb.User, err error) {
+	user := models.User{
+		Name:         in.Name,
+		Email:        in.Email,
+		Password:     in.Password,
+		Organization: utils.Ptr(in.Organization),
+	}
 
-	// Parse JSON request body
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+	// Validate request
+	if false {
+		return nil, status.Error(codes.InvalidArgument, "Invalid argument")
 	}
 
 	// Используем репозиторий для создания пользователя
-	dbUser, err := bh.userRepo.CreateUser(&user)
+	dbUser, err := bh.userRepo.CreateUser(ctx, &user)
 	if err != nil {
-		http.Error(w, "Failed to create user", http.StatusInternalServerError)
-		return
+		return nil, status.Error(codes.Internal, "Failed to create user")
 	}
-
-	user.ID = dbUser.ID
-
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
 
 	// Send response
-	if err := json.NewEncoder(w).Encode(user); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
+	return &api_pb.User{
+		Id:           int32(dbUser.ID),
+		Name:         user.Name,
+		Email:        user.Email,
+		Organization: utils.FromPtr(user.Organization),
+	}, nil
 }

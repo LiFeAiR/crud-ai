@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/LiFeAiR/users-crud-ai/internal/repository"
+	"github.com/LiFeAiR/crud-ai/internal/repository"
 )
 
 func main() {

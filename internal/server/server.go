@@ -1,23 +1,35 @@
 package server
 
 import (
+	"context"
 	"log"
 	"net/http"
 
-	"github.com/LiFeAiR/users-crud-ai/internal/handlers"
-	"github.com/LiFeAiR/users-crud-ai/internal/repository"
+	"github.com/LiFeAiR/crud-ai/internal/handlers"
+	"github.com/LiFeAiR/crud-ai/internal/repository"
+	gw "github.com/LiFeAiR/crud-ai/pkg/server/grpc"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 )
 
 // Server представляет HTTP сервер
 type Server struct {
-	port string
-	db   *repository.DB
+	portHTTP    string
+	portProm    string
+	connStr     string
+	db          *repository.DB
+	baseHandler *handlers.BaseHandler
 }
 
 // NewServer создает новый экземпляр сервера
-func NewServer(port string) *Server {
+func NewServer(portHttp, portProm string, connStr string) *Server {
 	return &Server{
-		port: port,
+		portHTTP: portHttp,
+		portProm: portHttp,
+		connStr:  portHttp,
 	}
 }
 
@@ -26,87 +38,65 @@ func (s *Server) DB() *repository.DB {
 	return s.db
 }
 
+func (s *Server) BaseHandler() gw.CrudServiceServer {
+	return s.baseHandler
+}
+
+func (s *Server) Close() error {
+	return s.db.Close()
+}
+
 // Start запускает HTTP сервер
-func (s *Server) Start(connStr string) error {
+func (s *Server) Start(ctx context.Context) error {
 	// Подключаемся к базе данных
-	db, err := repository.NewDB(connStr)
+	db, err := repository.NewDB(s.connStr)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
-	defer db.Close()
 
 	s.db = db
 
 	userRepo := repository.NewUserRepository(db)
 	orgRepo := repository.NewOrganizationRepository(db)
 	baseHandler := handlers.NewBaseHandler(userRepo, orgRepo)
+	s.baseHandler = baseHandler
 
-	//// Определяем обработчик для корневого пути
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		handlers.GetRootHandler(w, r)
-	})
+	defer s.Close()
 
-	// Определяем обработчик для эндпоинта /api/users
-	http.HandleFunc("/api/users", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			baseHandler.GetUsers(w, r)
-		case http.MethodPost:
-			baseHandler.CreateUser(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	grpcServer := grpc.NewServer(
+		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+	)
+
+	gw.RegisterCrudServiceServer(grpcServer, s.BaseHandler())
+
+	var group errgroup.Group
+
+	//lis, err := net.Listen("tcp", "localhost:8081")
+	//if err != nil {
+	//	return err
+	//}
+
+	//group.Go(func() error {
+	//	return grpcServer.Serve(lis)
+	//})
+
+	mux := runtime.NewServeMux(runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{OrigName: true, EmitDefaults: true}))
+
+	group.Go(func() error {
+		err := gw.RegisterCrudServiceHandlerServer(ctx, mux, s.BaseHandler())
+		if err != nil {
+			return err
 		}
+
+		log.Printf("CrudService Listening on :%s...", s.portHTTP)
+		return http.ListenAndServe(":"+s.portHTTP, mux)
 	})
 
-	// Определяем обработчик для эндпоинта /api/user с несколькими методами
-	http.HandleFunc("/api/user", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			// Определяем обработчик для GET /api/user/id=int
-			baseHandler.GetUser(w, r)
-		case http.MethodPut:
-			baseHandler.UpdateUser(w, r)
-		case http.MethodDelete:
-			baseHandler.DeleteUser(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
+	group.Go(func() error {
+		log.Printf("Promhttp Handler Listening on :%s...", s.portProm)
+		return http.ListenAndServe(":"+s.portProm, promhttp.Handler())
 	})
 
-	// Определяем обработчики для эндпоинтов /api/organizations
-	http.HandleFunc("/api/organizations", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			// GET /api/organizations - получить список организаций
-			baseHandler.GetOrganizations(w, r)
-		case http.MethodPost:
-			// POST /api/organizations - создать новую организацию
-			baseHandler.CreateOrganization(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
-
-	// Определяем обработчик для эндпоинта /api/organization с методами GET, PUT, DELETE
-	http.HandleFunc("/api/organization", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			// GET /api/organization/id - получить организацию по ID
-			baseHandler.GetOrganization(w, r)
-		case http.MethodPut:
-			// PUT /api/organization/id - обновить организацию
-			baseHandler.UpdateOrganization(w, r)
-		case http.MethodDelete:
-			// DELETE /api/organization/id - удалить организацию
-			baseHandler.DeleteOrganization(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
-
-	// Запускаем HTTP сервер
-	log.Printf("Starting HTTP server on port %s...\n", s.port)
-	log.Fatal(http.ListenAndServe(":"+s.port, nil))
-
-	return nil
+	return group.Wait()
 }

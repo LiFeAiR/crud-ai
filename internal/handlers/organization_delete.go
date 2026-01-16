@@ -1,41 +1,19 @@
 package handlers
 
 import (
-	"encoding/json"
-	"log"
-	"net/http"
-	"strconv"
+	"context"
+
+	"github.com/LiFeAiR/crud-ai/pkg/server/grpc"
 )
 
 // DeleteOrganization удаляет организацию
-func (bh *BaseHandler) DeleteOrganization(w http.ResponseWriter, r *http.Request) {
-	// Получаем ID из query параметров
-	iDStr := r.URL.Query().Get("id")
-	if iDStr == "" {
-		http.Error(w, "Missing organization ID in query parameters", http.StatusBadRequest)
-		return
-	}
-
-	// Конвертируем строку в целое число
-	id, err := strconv.Atoi(iDStr)
-	if err != nil {
-		http.Error(w, "Invalid organization ID", http.StatusBadRequest)
-		return
-	}
-
+func (bh *BaseHandler) DeleteOrganization(ctx context.Context, req *grpc.Id) (*grpc.Empty, error) {
 	// Используем репозиторий для удаления организации
-	err = bh.orgRepo.DeleteOrganization(id)
+	err := bh.orgRepo.DeleteOrganization(ctx, int(req.GetId()))
 	if err != nil {
-		http.Error(w, "Failed to delete organization", http.StatusInternalServerError)
-		return
+		return nil, err
 	}
 
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	// Send response
-	if err := json.NewEncoder(w).Encode(map[string]string{"message": "Organization deleted successfully"}); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
+	// Возвращаем пустой ответ
+	return &grpc.Empty{}, nil
 }

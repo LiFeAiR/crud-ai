@@ -1,23 +1,22 @@
 package handlers
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"github.com/LiFeAiR/users-crud-ai/internal/models"
+	"github.com/LiFeAiR/crud-ai/internal/models"
+	"github.com/LiFeAiR/crud-ai/pkg/server/grpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// Mock UserRepository для тестирования
+// Mock OrganizationRepository для тестирования
 type MockOrganizationRepository struct {
 	mock.Mock
 }
 
-func (m *MockOrganizationRepository) CreateOrganization(org *models.Organization) (*models.Organization, error) {
+func (m *MockOrganizationRepository) CreateOrganization(_ context.Context, org *models.Organization) (*models.Organization, error) {
 	args := m.Called(org)
 
 	if o, ok := args.Get(0).(*models.Organization); ok {
@@ -27,23 +26,23 @@ func (m *MockOrganizationRepository) CreateOrganization(org *models.Organization
 	return nil, args.Error(1)
 }
 
-func (m *MockOrganizationRepository) GetOrganizationByID(id int) (*models.Organization, error) {
-	args := m.Called(id)
+func (m *MockOrganizationRepository) GetOrganizationByID(ctx context.Context, id int) (*models.Organization, error) {
+	args := m.Called(ctx, id)
 	return args.Get(0).(*models.Organization), args.Error(1)
 }
 
-func (m *MockOrganizationRepository) UpdateOrganization(org *models.Organization) error {
-	args := m.Called(org)
+func (m *MockOrganizationRepository) UpdateOrganization(ctx context.Context, org *models.Organization) error {
+	args := m.Called(ctx, org)
 	return args.Error(0)
 }
 
-func (m *MockOrganizationRepository) DeleteOrganization(id int) error {
-	args := m.Called(id)
+func (m *MockOrganizationRepository) DeleteOrganization(ctx context.Context, id int) error {
+	args := m.Called(ctx, id)
 	return args.Error(0)
 }
 
-func (m *MockOrganizationRepository) GetOrganizations(limit, offset int) ([]*models.Organization, error) {
-	args := m.Called(limit, offset)
+func (m *MockOrganizationRepository) GetOrganizations(ctx context.Context, limit, offset int) ([]*models.Organization, error) {
+	args := m.Called(ctx, limit, offset)
 	return args.Get(0).([]*models.Organization), args.Error(1)
 }
 
@@ -51,12 +50,11 @@ func (m *MockOrganizationRepository) InitDB() error {
 	panic("implement me")
 }
 
-func TestGetOrganizationHandler(t *testing.T) {
-	// Test 1: Получение организации
+// TestBaseHandler_GetOrganization тестирует метод GetOrganization базового обработчика
+func TestBaseHandler_GetOrganization(t *testing.T) {
+	ctx := context.Background()
+	// Test 1: Успешное получение организации
 	t.Run("GetOrganizationSuccess", func(t *testing.T) {
-		// Create a test request
-		req := httptest.NewRequest("GET", "/api/organization?id=1", nil)
-
 		// Создаем мок репозиторий
 		mockRepo := new(MockOrganizationRepository)
 
@@ -67,93 +65,62 @@ func TestGetOrganizationHandler(t *testing.T) {
 		}
 
 		// Определяем ожидаемое поведение мока
-		mockRepo.On("GetOrganizationByID", 1).Return(testOrg, nil)
+		mockRepo.On("GetOrganizationByID", ctx, 1).Return(testOrg, nil)
 
 		// Создаем базовый обработчик с моком
 		baseHandler := &BaseHandler{
 			orgRepo: mockRepo,
 		}
 
-		// Create a response recorder
-		rr := httptest.NewRecorder()
+		// Вызываем метод GetOrganization
+		org, err := baseHandler.GetOrganization(ctx, &grpc.Id{Id: 1})
 
-		// Call the handler
-		baseHandler.GetOrganization(rr, req)
-
-		// Check the status code
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		// Check the response body
-		var responseOrg models.Organization
-		err := json.Unmarshal(rr.Body.Bytes(), &responseOrg)
+		// Проверяем результат
 		assert.NoError(t, err)
-		assert.Equal(t, "Test Org", responseOrg.Name)
-		assert.Equal(t, 1, responseOrg.ID)
+		assert.NotNil(t, org)
+		assert.Equal(t, int32(1), org.Id)
+		assert.Equal(t, "Test Org", org.Name)
+
+		// Проверяем, что мок был вызван правильно
+		mockRepo.AssertExpectations(t)
 	})
 
-	// Test 2: Отсутствует ID
-	t.Run("GetOrganizationMissingID", func(t *testing.T) {
-		// Create a test request without ID
-		req := httptest.NewRequest("GET", "/api/organization", nil)
-
-		// Создаем базовый обработчик (без мока, так как не должен вызываться)
+	// Test 2: Некорректный аргумент (nil)
+	t.Run("GetOrganizationNilArgument", func(t *testing.T) {
+		// Создаем базовый обработчик
 		baseHandler := &BaseHandler{
 			orgRepo: nil,
 		}
 
-		// Create a response recorder
-		rr := httptest.NewRecorder()
+		// Вызываем метод GetOrganization с nil аргументом
+		org, err := baseHandler.GetOrganization(ctx, nil)
 
-		// Call the handler
-		baseHandler.GetOrganization(rr, req)
-
-		// Check the status code
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		// Проверяем результат
+		assert.Error(t, err)
+		assert.Nil(t, org)
 	})
 
-	// Test 3: Некорректный ID
-	t.Run("GetOrganizationInvalidID", func(t *testing.T) {
-		// Create a test request with invalid ID
-		req := httptest.NewRequest("GET", "/api/organization?id=abc", nil)
-
-		// Создаем базовый обработчик (без мока, так как не должен вызываться)
-		baseHandler := &BaseHandler{
-			orgRepo: nil,
-		}
-
-		// Create a response recorder
-		rr := httptest.NewRecorder()
-
-		// Call the handler
-		baseHandler.GetOrganization(rr, req)
-
-		// Check the status code
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
-	// Test 4: Организация не найдена
+	// Test 3: Организация не найдена
 	t.Run("GetOrganizationNotFound", func(t *testing.T) {
-		// Create a test request
-		req := httptest.NewRequest("GET", "/api/organization?id=1", nil)
-
 		// Создаем мок репозиторий
 		mockRepo := new(MockOrganizationRepository)
 
 		// Определяем ожидаемое поведение мока - возвращаем ошибку
-		mockRepo.On("GetOrganizationByID", 1).Return((*models.Organization)(nil), errors.New("organization not found"))
+		mockRepo.On("GetOrganizationByID", ctx, 1).Return((*models.Organization)(nil), errors.New("organization not found"))
 
 		// Создаем базовый обработчик с моком
 		baseHandler := &BaseHandler{
 			orgRepo: mockRepo,
 		}
 
-		// Create a response recorder
-		rr := httptest.NewRecorder()
+		// Вызываем метод GetOrganization
+		org, err := baseHandler.GetOrganization(ctx, &grpc.Id{Id: 1})
 
-		// Call the handler
-		baseHandler.GetOrganization(rr, req)
+		// Проверяем результат
+		assert.Error(t, err)
+		assert.Nil(t, org)
 
-		// Check the status code
-		assert.Equal(t, http.StatusNotFound, rr.Code)
+		// Проверяем, что мок был вызван правильно
+		mockRepo.AssertExpectations(t)
 	})
 }

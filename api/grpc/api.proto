@@ -1,0 +1,120 @@
+syntax = "proto3";
+package grpc;
+option go_package = "/grpc";
+import "google/api/annotations.proto";
+
+message Empty {
+
+}
+
+message Id {
+  int32 id = 1;
+}
+
+message ListRequest {
+  uint32 limit = 1;
+  uint32 offset = 2;
+}
+
+message User {
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+  string password = 4;
+  string organization = 5;
+}
+
+message UserCreateRequest {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+  string organization = 4;
+}
+
+message UserUpdateRequest {
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+  string password = 4;
+  string organization = 5;
+}
+
+message UsersResponse {
+  repeated User data = 1;
+}
+
+
+message Organization {
+  int32 id = 1;
+  string name = 2;
+}
+
+message OrganizationCreateRequest {
+  string name = 1;
+}
+
+message OrganizationUpdateRequest {
+  int32 id = 1;
+  string name = 2;
+}
+
+message OrganizationsResponse {
+  repeated Organization data = 1;
+}
+
+service CrudService {
+  rpc GetUsers (ListRequest) returns (UsersResponse) {
+    option (google.api.http) = {
+      get: "/api/users"
+    };
+  }
+  rpc CreateUser (UserCreateRequest) returns (User) {
+    option (google.api.http) = {
+      post: "/api/users"
+      body: "*"
+    };
+  }
+  rpc GetUser (Id) returns (User) {
+    option (google.api.http) = {
+      get: "/api/user/{id}"
+    };
+  }
+  rpc UpdateUser (UserUpdateRequest) returns (User) {
+    option (google.api.http) = {
+      put: "/api/user"
+      body: "*"
+    };
+  }
+  rpc DeleteUser (Id) returns (Empty) {
+    option (google.api.http) = {
+      delete: "/api/user/{id}"
+    };
+  }
+  rpc GetOrganizations (ListRequest) returns (OrganizationsResponse) {
+    option (google.api.http) = {
+      get: "/api/organizations"
+    };
+  }
+  rpc CreateOrganization (OrganizationCreateRequest) returns (Organization) {
+    option (google.api.http) = {
+      post: "/api/organizations"
+      body: "*"
+    };
+  }
+  rpc GetOrganization (Id) returns (Organization) {
+    option (google.api.http) = {
+      get: "/api/organization/{id}"
+    };
+  }
+  rpc UpdateOrganization (OrganizationUpdateRequest) returns (Organization) {
+    option (google.api.http) = {
+      put: "/api/organization"
+      body: "*"
+    };
+  }
+  rpc DeleteOrganization (Id) returns (Empty) {
+    option (google.api.http) = {
+      delete: "/api/organization/{id}"
+    };
+  }
+}

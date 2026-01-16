@@ -1,38 +1,35 @@
 package handlers
 
 import (
-	"encoding/json"
-	"log"
-	"net/http"
+	"context"
 
-	"github.com/LiFeAiR/users-crud-ai/internal/models"
+	"github.com/LiFeAiR/crud-ai/internal/models"
+	api_pb "github.com/LiFeAiR/crud-ai/pkg/server/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // CreateOrganization создает новую организацию
-func (bh *BaseHandler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
-	var org models.Organization
+func (bh *BaseHandler) CreateOrganization(ctx context.Context, in *api_pb.OrganizationCreateRequest) (out *api_pb.Organization, err error) {
+	// Проверяем входные данные
+	if in == nil || in.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, "Invalid argument")
+	}
 
-	// Parse JSON request body
-	if err := json.NewDecoder(r.Body).Decode(&org); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
+	// Преобразуем запрос в модель
+	org := models.Organization{
+		Name: in.Name,
 	}
 
 	// Используем репозиторий для создания организации
-	dbOrg, err := bh.orgRepo.CreateOrganization(&org)
+	dbOrg, err := bh.orgRepo.CreateOrganization(ctx, &org)
 	if err != nil {
-		http.Error(w, "Failed to create organization", http.StatusInternalServerError)
-		return
+		return nil, status.Error(codes.Internal, "Failed to create organization")
 	}
 
-	org.ID = dbOrg.ID
-
-	// Set response headers
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	// Send response
-	if err := json.NewEncoder(w).Encode(org); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
+	// Возвращаем ответ
+	return &api_pb.Organization{
+		Id:   int32(dbOrg.ID),
+		Name: dbOrg.Name,
+	}, nil
 }
