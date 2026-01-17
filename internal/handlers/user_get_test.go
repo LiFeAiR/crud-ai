@@ -16,6 +16,16 @@ type MockUserRepository struct {
 	mock.Mock
 }
 
+func (m *MockUserRepository) CheckPassword(ctx context.Context, userID int, password string) (bool, error) {
+	args := m.Called(ctx, userID, password)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockUserRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	args := m.Called(ctx, email)
+	return args.Get(0).(*models.User), args.Error(1)
+}
+
 func (m *MockUserRepository) GetUsers(ctx context.Context, limit, offset int) ([]*models.User, error) {
 	args := m.Called(ctx, limit, offset)
 	return args.Get(0).([]*models.User), args.Error(1)

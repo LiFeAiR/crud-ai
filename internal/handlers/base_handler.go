@@ -6,14 +6,20 @@ import (
 
 // BaseHandler базовый обработчик, который принимает репозитории
 type BaseHandler struct {
-	userRepo repository.UserRepository
-	orgRepo  repository.OrganizationRepository
+	userRepo  repository.UserRepository
+	orgRepo   repository.OrganizationRepository
+	secretKey string
 }
 
 // NewBaseHandler создает новый базовый обработчик
-func NewBaseHandler(userRepo repository.UserRepository, orgRepo repository.OrganizationRepository) *BaseHandler {
+func NewBaseHandler(
+	userRepo repository.UserRepository,
+	orgRepo repository.OrganizationRepository,
+	secretKey string,
+) *BaseHandler {
 	return &BaseHandler{
-		userRepo: userRepo,
-		orgRepo:  orgRepo,
+		userRepo:  userRepo,
+		orgRepo:   orgRepo,
+		secretKey: secretKey,
 	}
 }

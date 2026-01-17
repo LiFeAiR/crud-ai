@@ -20,16 +20,18 @@ type Server struct {
 	portHTTP    string
 	portProm    string
 	connStr     string
+	secretKey   string
 	db          *repository.DB
 	baseHandler *handlers.BaseHandler
 }
 
 // NewServer создает новый экземпляр сервера
-func NewServer(portHttp, portProm string, connStr string) *Server {
+func NewServer(portHttp, portProm string, connStr, secretKey string) *Server {
 	return &Server{
-		portHTTP: portHttp,
-		portProm: portProm,
-		connStr:  connStr,
+		portHTTP:  portHttp,
+		portProm:  portProm,
+		connStr:   connStr,
+		secretKey: secretKey,
 	}
 }
 
@@ -58,7 +60,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 	userRepo := repository.NewUserRepository(db)
 	orgRepo := repository.NewOrganizationRepository(db)
-	baseHandler := handlers.NewBaseHandler(userRepo, orgRepo)
+	baseHandler := handlers.NewBaseHandler(userRepo, orgRepo, s.secretKey)
 	s.baseHandler = baseHandler
 
 	defer s.Close()

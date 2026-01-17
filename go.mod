@@ -13,6 +13,7 @@ require (
 	google.golang.org/genproto v0.0.0-20200513103714-09dca8ec2884
 	google.golang.org/grpc v1.33.1
 	google.golang.org/protobuf v1.36.8
+	github.com/golang-jwt/jwt/v5 v5.0.0
 )
 
 require (

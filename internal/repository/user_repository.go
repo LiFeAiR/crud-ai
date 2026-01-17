@@ -37,6 +37,31 @@ func (r *userRepository) CheckPassword(ctx context.Context, userID int, password
 	return utils.CheckPassword(password, hash), nil
 }
 
+// GetUserByEmail получает пользователя по email
+func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	query := `SELECT id, name, email, organization_id FROM users WHERE email = $1`
+	row := r.db.GetConnection().QueryRow(ctx, query, email)
+
+	user := &models.User{}
+	var org sql.NullInt32
+	err := row.Scan(&user.ID, &user.Name, &user.Email, &org)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
+	}
+
+	// Проверяем, было ли значение NULL
+	if org.Valid {
+		user.Organization = &models.Organization{ID: int(org.Int32)}
+	} else {
+		user.Organization = nil
+	}
+
+	return user, nil
+}
+
 // CreateUser создает нового пользователя
 func (r *userRepository) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	query := `INSERT INTO users (name, email, password_hash, organization_id) VALUES ($1, $2, $3, $4) RETURNING id`

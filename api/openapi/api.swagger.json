@@ -11,6 +11,38 @@
     "application/json"
   ],
   "paths": {
+    "/api/login": {
+      "post": {
+        "operationId": "CrudService_Login",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/grpcLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/grpcLoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "CrudService"
+        ]
+      }
+    },
     "/api/organization": {
       "put": {
         "operationId": "CrudService_UpdateOrganization",
@@ -335,6 +367,28 @@
   "definitions": {
     "grpcEmpty": {
       "type": "object"
+    },
+    "grpcLoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "grpcLoginResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "user": {
+          "$ref": "#/definitions/grpcUser"
+        }
+      }
     },
     "grpcOrganization": {
       "type": "object",

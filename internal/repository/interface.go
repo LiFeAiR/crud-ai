@@ -8,6 +8,8 @@ import (
 
 // UserRepository интерфейс для работы с пользователями
 type UserRepository interface {
+	CheckPassword(ctx context.Context, userID int, password string) (bool, error)
+	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
 	GetUserByID(ctx context.Context, id int) (*models.User, error)
 	UpdateUser(ctx context.Context, user *models.User) error

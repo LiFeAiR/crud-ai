@@ -27,6 +27,6 @@ func run() error {
 	}
 
 	// Create and start the server
-	s := server.NewServer("8080", "2662", dbURL)
+	s := server.NewServer("8080", "2662", dbURL, "your-secret-key")
 	return s.Start(ctx)
 }
