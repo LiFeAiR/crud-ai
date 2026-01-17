@@ -12,6 +12,16 @@ type MockRoleRepository struct {
 	mock.Mock
 }
 
+func (m *MockRoleRepository) AddRolePermissions(ctx context.Context, roleID int, permissionIDs []int) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockRoleRepository) DeleteRolePermissions(ctx context.Context, roleID int, permissionIDs []int) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m *MockRoleRepository) CreateRole(ctx context.Context, role *models.Role) (*models.Role, error) {
 	args := m.Called(ctx, role)
 	return args.Get(0).(*models.Role), args.Error(1)

@@ -1,3 +1,5 @@
+## Что было реализовано:
+
 1. Создана модель Role в `internal/models/role.go` с полем для связи с Permission
 2. Добавлен интерфейс и реализация репозитория для Role в `internal/repository/role_repository.go`
 3. Созданы хендлеры для всех CRUD операций с Role:
@@ -13,7 +15,6 @@
 6. Обновлен базовый обработчик в `internal/handlers/base_handler.go` для поддержки Role
 7. Обновлена инициализация сервера в `internal/server/server.go` для поддержки Role
 8. Созданы тесты для новых компонентов:
-    - `internal/repository/role_repository_test.go`
     - `internal/handlers/role_create_test.go`
     - `internal/handlers/mock_role_repository.go`
 
