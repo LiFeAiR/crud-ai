@@ -27,12 +27,13 @@ func (bh *BaseHandler) GetUser(ctx context.Context, in *api_pb.Id) (out *api_pb.
 		org, err := bh.orgRepo.GetOrganizationByID(ctx, user.Organization.ID)
 		if err == nil {
 			user.Organization.Name = org.Name
+			user.Organization.TariffID = org.TariffID
 		}
 
 		orgOut = &api_pb.Organization{
 			Id:       int32(user.Organization.ID),
 			Name:     user.Organization.Name,
-			TariffId: int32(utils.FromPtr(org.TariffID)),
+			TariffId: int32(utils.FromPtr(user.Organization.TariffID)),
 		}
 	}
 
