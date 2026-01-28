@@ -67,6 +67,7 @@ func ValidateJWT(tokenString, secretKey string) (*Claims, error) {
 	return claims, nil
 }
 
+// nolint unused
 func showPublicPEM(pkey *rsa.PrivateKey) (string, error) {
 	publicKeyDer, err := x509.MarshalPKIXPublicKey(&pkey.PublicKey)
 	if err != nil {

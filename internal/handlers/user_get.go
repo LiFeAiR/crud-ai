@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 
 	"github.com/LiFeAiR/crud-ai/internal/utils"
 	api_pb "github.com/LiFeAiR/crud-ai/pkg/server/grpc"
@@ -39,6 +40,9 @@ func (bh *BaseHandler) GetUser(ctx context.Context, in *api_pb.Id) (out *api_pb.
 
 	// Получаем обновленного пользователя с правами
 	permissions, err := bh.userRepo.GetUserPermissions(ctx, int(in.Id))
+	if err != nil {
+		log.Printf("Failed to get permissions, err:%v\n", err)
+	}
 
 	// Формируем ответ
 	var permissionsOut []*api_pb.Permission

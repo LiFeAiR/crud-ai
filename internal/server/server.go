@@ -97,9 +97,7 @@ func (s *Server) Start(ctx context.Context) error {
 		log.Printf("CrudService Listening on :%s...", s.portHTTP)
 
 		// apply middlewares
-		var mw http.Handler
-		mw = auth.New(s.secretKey)(mux)
-
+		mw := auth.New(s.secretKey)(mux)
 		return http.ListenAndServe(":"+s.portHTTP, mw)
 	})
 

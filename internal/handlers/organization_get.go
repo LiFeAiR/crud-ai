@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 
 	"github.com/LiFeAiR/crud-ai/internal/utils"
 	api_pb "github.com/LiFeAiR/crud-ai/pkg/server/grpc"
@@ -24,6 +25,9 @@ func (bh *BaseHandler) GetOrganization(ctx context.Context, in *api_pb.Id) (out 
 
 	// Получаем обновленную организацию с правами
 	permissions, err := bh.orgRepo.GetOrganizationPermissions(ctx, int(in.Id))
+	if err != nil {
+		log.Printf("Failed to get permissions, err:%v\n", err)
+	}
 
 	// Формируем ответ
 	var permissionsOut []*api_pb.Permission

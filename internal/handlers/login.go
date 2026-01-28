@@ -41,6 +41,9 @@ func (bh *BaseHandler) Login(ctx context.Context, in *api_pb.LoginRequest) (out 
 
 	// Получаем права пользователя
 	permissions, err := bh.userRepo.GetUserPermissions(ctx, user.ID)
+	if err != nil {
+		log.Printf("Failed to get permissions, err:%v\n", err)
+	}
 
 	// Формируем ответ
 	jwtPermissions := make([]string, 0, len(permissions))
